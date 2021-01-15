@@ -2,6 +2,9 @@
 //use |Nombre de la db| nos permite movernos entre db
 //db.getName()c nos permite obtener el nombre de la db en la que estamos trabajando
 //insertMany() nos permite insertar más de una coleccion a un documento
+
+const { DH_UNABLE_TO_CHECK_GENERATOR } = require("constants")
+
 //db.nombredeladb.find() nos regresa todos los objetos que existen en la db
 var padawan = {
     nombre: "David",
@@ -447,7 +450,7 @@ db.users.updateOne(
     },
     {
         $set:{
-            age:45
+            age:21
         }
     },
     //Nuevo argumento para la actualización
@@ -461,3 +464,57 @@ db.users.updateOne(
 //tercer argumento es el upsert, el cual le indica a la funcion 
 //que si no existe ningun documento con las condiciones 
 //prestablecidas, entonces se creara el documento 
+
+/*Si ejecutamos el comando anterior se creara un nuevo documento 
+con los datos que pusimos en el. Pero si lo volvemos a ejecutar 
+ahora con una distinta edad, el documento simplemente se actualizara
+ya que ahora si existe en nuestra colección*/
+
+/////////Eliminar documentos de una colección////////////
+
+/** Para poder eliminar documentos de nuestra colección 
+ *  podemos hacer uso del metodo - remove() -
+ *  remove() recibe como argumento un objeto en el cual 
+ *  insertaremos criterios de busqueda que utilizaremos 
+ *  para encontrar los elementos que deseamos eliminar
+ */
+
+ db.users.remove(
+     {
+         name:"Sergio"
+     }
+ )
+
+ /** Si por alguna razon llegamos a ejecutar el comando 
+  *  remove({}) sin algun atributo, le estaremos indicando 
+  *  a mongo que deseamos eliminar nuestra colección completa
+  * 
+*/
+
+//////////////////Eliminar una base de datos//////////////////
+
+/** En el caso que deseemos eliminar una base de datos, 
+ *  simplemente debemos de hacer uso de la funcion 
+ *  dropDatabase()
+ */
+
+ //Imaginemos que tenemos una base de datos llamada 
+ //testingDatabase, en el caso de que deseemos eliminarla 
+ //haremos lo siguiente
+
+db.testingDatabase.dropDatabase()
+
+/////////////////Eliminar una colección/////////////////
+
+/** Para eliminar una colección de nuestra base de datos
+ *  simplemente debemos de hacer uso de la funcion 
+ *  drop(). 
+ * 
+ *  Imaginemos que tenemos una coleccion llamata testCollection
+ *  para eliminarla lo unico que debemos de hacer es lo siguiente
+ */
+
+ db.testCollection.drop()
+
+ //Si la colección fue eliminada correctamente nos devolvera un valor 
+ //booleano true 

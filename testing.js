@@ -3,7 +3,7 @@
 //db.getName()c nos permite obtener el nombre de la db en la que estamos trabajando
 //insertMany() nos permite insertar más de una coleccion a un documento
 
-const { DH_UNABLE_TO_CHECK_GENERATOR } = require("constants")
+const { GridFSBucket } = require("mongodb")
 
 //db.nombredeladb.find() nos regresa todos los objetos que existen en la db
 var padawan = {
@@ -518,3 +518,430 @@ db.testingDatabase.dropDatabase()
 
  //Si la colección fue eliminada correctamente nos devolvera un valor 
  //booleano true  
+
+
+
+ /////////////////Cursores/////////////////////
+
+/*
+     Metodos que retornan un cursor 
+     find() -> Retorna un cursor con todos los documentos de la consulta
+     pretty() -> Hace la funcion de find pero con una lectura más agradable
+     count() -> Regresa el numero de documentos que cumplieron con la busqueda
+
+     Metodos que retornan un nuevo cursor 
+     limit() -> Designa el numero de documentos que deseamos ver en nuestra consulta
+     skip() -> Skipea una n cantidad de documentos en nuestra consulta
+     sort() -> Ordena los documentos de nuestra busqueda segun un critero de ordenamiento
+*/
+
+///////Ejemplos 
+// Obtener los primeros 3 usuarios de la coleccion users
+db.users.find().pretty().limit(3)
+
+//Obtener el tercer usuario de la coleccion users 
+db.users.find().skip(2).limit(1)
+
+//Ejecutar una consulta que muestre simplemente el nombre de los usuarios ordenados 
+//de forma alfabetica 
+
+db.users.find(
+    {
+    },
+    {
+        _id:false, name:true 
+    }
+).sort({
+    name:1  //1 Ascendente , -1 Descendente
+})
+
+for(var i=0; i<100;i++){
+    db.demo.insertOne({
+        name: "usuario" + i 
+    })
+}
+
+///////////////Buscar y modificar///////////
+//findAndModify()
+/*Esta funcion recibe 2 argumentos 
+ - query - Los criterios de busquedo para encontrar el documento a actualizar
+ -update - los cambios que vamos a establecer*/
+
+ db.users.findAndModify(
+     {
+         query:{
+            name:"David"
+         },
+         update:{
+            $inc:{
+                age:1
+            }
+         }
+     }
+ )
+
+ //Esta funcion nos devolvera el documento que cumple con los criterios de busqueda
+ //antes de ser actualizado, para poder ver los cambios
+ //tendremos que ejecutar el metodo find()
+ //Este metodo tambien puede tener otros atributos como 
+ //sort, remove upsert, etc.
+
+
+ ///////////////// Re-nombrar el nombre de un atributo//////////
+
+ /** Para llevar a cabo esta acción utilizaremos la función 
+  *  updateMany que ya hemos visto antes con ayuda de un 
+  *  nuevo operador, el $rename
+  */
+
+//Supongamos que queremos actualizar el nombre de nuestro campo age
+// a un nuevo nombre como edad, en ese caso lo que haremos 
+//sera lo siguiente 
+
+db.users.updateMany(
+    {},
+
+    {
+        $rename:{
+            age: "edad"
+        } 
+    }
+)
+
+db.users.updateMany(
+    {
+        age:{
+            $lt: 25
+        }
+    },
+    {
+        $set:{
+            cursos: ["python","html","css"]
+        }
+    }
+)
+
+///////////Operador $all ///////////////
+
+//Este operador nos permite buscar elementos dentro de una lista 
+//NOTA: Es importante mencionar que este operador funciona como un 
+//operador $and es decir todos los elemento deben existir dentro de la lista 
+//para que la condicion se cumpla  
+
+
+//Encontrar el usuario que tenga en sus cursos de los siguientes temas: html, css, java 
+
+db.users.find(
+    {
+        cursos:{ $all:["html","css","java"] }
+    }
+)
+
+
+
+//¿Qué pasa cuando tenemos que hacer multiples condicionales dentro de la busqueda de listas?
+//Podemos hacer lo siguiente 
+
+db.users.find(
+    {
+        cursos:"SQL"
+    }
+)
+
+//Si el atributo del cual estamos hablando es una lista, mongoDB nos permite interactuar de una 
+//forma muy sencilla con esta clase de elementos. 
+//En este caso estamos haciendo una consulta para buscar si existe una lista 
+//donde se encuentre el curso SQL
+
+//Resumen: si el atrib es una lista, buscara el elemento que marcamos dentro de la lista 
+
+/*Podemos simular el operador $all de la siguiente manera*/
+
+db.users.find(
+    {
+        $or:[
+            {
+                cursos:"SQL"
+            },
+            {
+                cursos:"Python"
+            }
+        ]
+    }
+)
+
+////////////////Ejercicio con operadores relacionales////////////////
+
+db.users.updateOne(
+    {
+        name:"David"
+    },
+    {
+        $set:{
+            scores:[9,8,5,10,10]
+        }
+    }
+)
+
+db.users.updateOne(
+    {
+        name:"Hector"
+    },
+    {
+        $set:{
+            scores:[10,10,9,10,10]
+        }
+    }
+)
+//Obtener todos los usuarios que posean una calificacion de por lo menos 10 
+//Obtener todos los usuarios que hayan reprobado por lo menos 1 calificacion
+//Ejercicio 1
+db.users.find(
+    {
+        scores:10
+    }
+)
+//Ejercicio 2 
+db.users.find(
+    {
+        scores:{
+            $lt:6
+        }
+    }
+)
+
+
+///////////////////////Operaciones con listas ///////////////////////
+//Operadores que nos ayudaran con esto 
+/**$push -> inserta nuevos elementos a la lista
+ * $push $each -> inserta multiples elementos a una lista 
+ * $pull 
+ * $pop
+ * $position
+ */
+//Agregar un elemento a una lista
+ db.users.updateOne(
+     {
+         name:"David"
+     },
+     {
+         $push:{
+             cursos:"C++"
+         }
+     }
+ )
+ //Agregar multiples elementos a una lista 
+ db.users.updateOne(
+    {
+        name:"David"
+    },
+    {
+        $push:{
+            cursos: {
+                $each: ["C#", "Ruby", "Django", "Rails", "Rust"]
+            }
+        }
+    }
+)
+
+//Añadir elementos en una posicion especifica 
+db.users.updateOne(
+    {
+        name:"David"
+    },
+    {
+        $push:{
+            cursos: {
+                $each: ["React Native"],
+                $position:3
+            }
+        }
+    }
+)
+
+/////////////////////////////////////Ordenar elementos en una lista//////////////////////////7
+
+//Para ordenar una lista nos apoyaremos del operador $sort el cual nos permite agregar elementos a una lista de una forma ordenada
+//ya sea ascendentemente o descendentemente 
+//$sort: 1 => Ascendente 
+//$sort: -1 => Descendente 
+
+db.users.updateOne(
+    {
+        name:"David"
+    },
+    {
+       $push:{
+            scores:{
+            $each:[10,6],
+            $sort: 1
+            }
+        } 
+    }
+)
+
+////////////////////Eliminar elementos de una lista///////////////
+//Para eliminar elementos de una lista nos podemos apoyar de 2 operadores 
+//$pull -> Este operador nos permite eliminar un elemento de la lista 
+//$pop ->
+//El operador $in tambien nos puede ser de gran ayuda en esta tarea
+
+//Eliminar un elemento de una lista
+db.users.updateMany(
+    {        
+            cursos:{
+                $exists:true 
+            }
+    },
+    {
+        $pull:{
+            cursos:"Python"
+        }
+    }
+)
+//Eliminar varios elementos de una lista
+db.users.updateMany(
+    {        
+            cursos:{
+                $exists:true 
+            }
+    },
+    {
+        $pull:{
+            cursos:{
+                $in: ["Databases","C#"]
+            }
+        }
+    }
+)
+//////////////////// Actualizar elementos por indice /////////
+
+//Cuando conocemos el indice
+db.users.updateMany(
+    {
+        cursos:{$exists:true}
+    },
+    {
+        $set:{
+            "scores.0": 6
+        }
+    }
+)
+//Podemos ver que utilizamos una nomenclatura especial para poder referirnos al primer elemento 
+//De la lista scores. Para poder entenderla mejor veamos la siguiente singaxis 
+//"scores" -> Nombre de la lista
+//"0" -> Posicion del elemento que deseamos actualizar 
+// : 6 -> El nuevo valor que le daremos a ese elemento 
+//Podemos resumirlo asi: 
+/**
+ * $set:{
+ *  "listName.elementIndex" : newValue
+ * } */ 
+
+ //Cuando no conocemos el indice
+
+ db.users.updateOne(
+     {
+        scores:{$exists:true},
+        scores: 9 //El valor que estamos buscando
+     },
+     {
+         $set:{
+             "scores.$": 7
+         }
+     }
+ )
+
+////////////////////Obtener elementos de una lista/////////////////77
+/**Para conocer los elementos de una lista podemos hacer uso del operador
+ * $slice el cual nos permite conocer algun elemento de la lista ya sea por
+ * su posicion, o por su inidice 
+ * 
+ * Nota: index != position 
+ */
+
+//Obtener todos los elementos con el nombre de David 
+//y obtener de este el nombre del primer curso que esta
+//llevando a cabo
+
+db.users.find(
+    {
+        name:"David"
+    },
+    {
+        _id:false,
+        name:true,
+        cursos:{
+            $slice: [0,3] //position or [index]
+        }
+    }
+)
+
+/**¿Cuando usar position y cuando usar index?
+ * Cuando deseemos encontrar unicamente 1 elemento
+ * utilizaremos position y cuando querramos obtener 
+ * una porcion de la lista utilizaremos index
+ * 
+ * Nota: cuando utilizamos [index] la sintaxis es la siguiente 
+ * 
+ * slice[ skip , limit ]
+ * El segundo parámetro de slice indica el numero de items a retornar, 
+ * no el indice.
+ * slice[0, 3]  se refiere que a partir del indice cero
+ * obtenga 3 elementos. 
+ */
+
+ ///////////////////////Buscar por el tamaño de una lista//////////////////7
+
+ //Para esta ocasión utilizaremos el operador
+ //$size, el cual recibe un numero entero del 
+ //tamaño de la lista. Podemos resumir la sintaxis de la 
+ //siguiente manera: 
+ // $size: tamaño
+ //Obtener todos los usuarios con 5 cursos
+
+ db.users.find(
+     {
+         cursos:{
+            $size: 6
+         }
+     }
+ )
+
+ //Obtener todos los usuarios que posean por lo menos 3 
+ //cursos 
+
+ db.users.find(
+     {
+        $and:[
+            {
+                scores:{$exists:true}
+            },
+            {
+                $where: "this.scores.length > 3"
+            }
+        ]
+     }
+ )  
+
+ //////Documentos anidados ///////
+ 
+ /** En mongoDB podemos tener documentos dentro de otros documentos 
+  * de forma muy sencilla, veamos un ejemplo 
+  *
+  */
+
+  db.users.updateOne(
+      {
+          name:"David"
+      },
+      { 
+          $set:{
+              address:{
+                  state:"Veracruz",
+                  city:"Coatzacoalcos",
+                  postalCode:122
+              }
+          }
+      }
+  )

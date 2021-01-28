@@ -945,3 +945,88 @@ db.users.find(
           }
       }
   )
+
+  ////////////$elemMatch/////////7
+  /**Este operador nos permite buscar atributos de documentos que se encuentren dentro de listas
+   * 
+   */
+  //Obtener todos los usuarios que hayan completado por lo menos un curso
+
+  db.users.find(
+      {
+          cursos:{
+              $elemMatch:{
+                  completado:true
+              }
+          }
+      }
+  )
+
+  //Obtener todos los usuarios que tengan un progreso > a 80%
+
+  db.users.find(
+      {
+          cursos:{
+              $elemMatch:{
+                progreso:{
+                    $gte:80
+                }
+              }
+          }
+      }
+  )
+
+  /////////////////// Ejercicio con Proyecciones ////////////
+  /** Obtener el nombre del usuario junto con el titulo de cada uno de sus cursos */
+  db.users.find(
+      {
+          cursos:{
+              $exists:true
+          }
+
+      },
+      {
+          _id:false,
+          nombre:true,
+          "cursos.titulo":true
+      }
+  ).pretty()
+
+  //Actualizar los elementos del siguiente usuario 
+  const Fer={
+      nombre:"Fernando Ismael",
+      age:14,
+      cursos:{
+          titulo:"Python",
+          completado:false,
+          progreso:12
+      }
+  }
+
+  db.users.updateOne(
+      {
+          name:"Fernando Ismael"
+
+      },
+      {
+          $set:{
+              "cursos.0.completado": true,
+              "cursos.0.progreso":100   
+          }
+      }
+  )
+  //En el caso de no conocer el indice de la lista 
+  db.users.updateOne(
+      {
+          name:"Fernando Ismael",
+          "cursos.titulo":"Python"
+      },
+      {
+          $set:{
+            "cursos.$.completado": true,
+            "cursos.$.progreso":100   
+          }
+      }
+  )
+  //Recordemos que en el caso de no saber la posicion del elemento a modificar deberemos de 
+  //Usar el signo de $ y ayudar a mongo con una condicion que nos ayude a encontrar el elemento
